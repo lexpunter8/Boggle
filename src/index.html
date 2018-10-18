@@ -5,6 +5,65 @@
     <title><%= htmlWebpackPlugin.options.title %></title>
 </head>
 <body>
-    <p>Content test plus PLUS</p>
+    <div id="gameField" class="center">
+        <div>
+            <table id="board">
+    
+            </table>
+            <p>Word:</p>
+            <p class="wordBlock"></p>
+            <button id="addWordButton">Add word</button>
+    
+            <button id="clearButton">Clear</button>
+             
+        </div>
+    
+    
+        <div>
+            <p class="timer">Timer</p> 
+            <div id="wordsList">  
+                <table id="scoreTable" class="tableHeader">
+                    <tr>
+                        <th style="width: 180px">Word</th>
+                        <th style="width: 70px">Score</th>
+                    </tr>
+                </table> 
+    
+            </div> 
+        </div>
+    </div>
+     
+
+    <div id="endScreen" class="defaultScreen center">
+        <h1 id="score"></h1>
+        <div>
+            <table id="highScoreTable" class="tableHeader">
+                <th style="width: 180px">Name</th>
+                <th style="width: 70px">Score</th>
+                
+            </table>
+        </div>
+        <div>
+                <button id="homeButton" >
+                    HOME
+                </button>
+            </div>
+    </div>
+    <div id="startScreen" class="defaultScreen center">
+        <h1>Boggle</h1>
+        <div>
+            <input placeholder="Name" id="inputName" type="text">
+        </div>
+        <div>
+            <button id="startButton" disabled>
+                START
+            </button>
+        </div>
+    </div>
+    <script
+        src="https://code.jquery.com/jquery-3.1.0.js"
+        integrity="sha256-slogkvB1K3VOkzAI8QITxV3VzpOnkeNVsKvtkYLMjfk="
+        crossorigin="anonymous">
+    </script>
 </body>
 </html>

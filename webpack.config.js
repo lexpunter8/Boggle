@@ -1,5 +1,6 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const webpack = require('webpack');
 var path = require("path");
 module.exports = {
     devtool: 'eval-source-map',
@@ -36,5 +37,9 @@ module.exports = {
             template: './src/index.html'
         }),
         new ExtractTextPlugin("app.css"),
+        new webpack.ProvidePlugin({
+            $: 'jquery',
+            jQuery: 'jquery'
+        }),
       ]
 }

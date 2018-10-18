@@ -1,6 +1,127 @@
-body {
-    background-color: red;
-    p {
-        color: darkcyan;
-    }
+body html { 
+    width: 100%;
+    margin: 0px;
+}
+#gameField {
+    display: flex;
+    display: none;
+    height: auto;
+
+    width: fit-content;
+}
+
+#gameField div {
+    float: left;
+}
+
+#board {
+    padding: 5pt;
+    width: 400px;
+    border: 1px solid black;
+}
+.boggle{
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
+    text-align: center;
+    vertical-align: middle;
+    display: table-cell;
+    font-size: 400%;
+    font-weight: bold;
+    //background-image: radial-gradient(circle, white, grey);
+    background-color: lightgray;
+    -webkit-user-select:none;
+    -moz-user-select:none;
+    -ms-user-select:none;
+    user-select:none;
+    cursor: pointer;
+}
+
+.selected {
+    background-color: lightgreen;
+}
+
+.disabled {
+    background-color: lightcoral;
+}
+
+.wordblock {
+    height: 40px;
+    margin: 0px 0px 5px 0px;
+    width: 400px;
+    font-size: 200%;
+    font-weight: bold;
+    border: 1pt solid black;
+}
+
+#wordsList{
+    border: 1px solid black;
+    height: 380px;
+    margin: 0;
+}
+
+.tableHeader th {
+    text-align: left;
+    background-color: black;
+    color:white;
+}
+
+#endScreen {
+    display: none;
+}
+.defaultScreen h1 {
+    color: darkred;
+    width: 100%;
+    font-size: 200%;
+    text-align: center;
+}
+
+.defaultScreen {
+    font-size: 200%;
+    padding: 5% 10% 10% 10%;
+    border: 1px solid black;
+    align-content: center;
+    width: 40%;
+    min-height: 20%;
+    height: auto;
+}
+.defaultScreen div {
+    width: 100%;
+    max-height: 200px;
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    overflow: auto;
+}
+
+#endScreen table {
+    margin-top: 20px;
+    align-self: center;
+}
+
+
+.defaultScreen button {
+    margin-top: 10%;
+    width: 200px;
+    border-radius: 15px;
+    font-size: 80%;
+    font-weight: bold;
+}
+
+#endScreen table button {
+    width: auto;
+}
+
+#inputName {
+    font-size: 60%;
+    text-align: center;
+}
+
+.center {
+    position: absolute;
+    top:10%;
+    left: 0;
+    right: 0;
+    
+    margin: auto;
 }
