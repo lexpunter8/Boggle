@@ -16,234 +16,225 @@ class Game{
     }
 }
 
-var inputName = $('#inputName'),
+function BoggleService(url){
+    var service = this
+    this.board = $('#board');
+    this.game
+    this.boggleBoard
+    this.letters = $('.boggle')
+    this.isGameEnd = true
+
+    this.updateEvents = function () {
+        $(service.letters).on('click', event => {
+            let current = $(event.currentTarget);
+            if(current.hasClass('selected') || current.hasClass('disabled'))
+            { 
+                return;
+            }
+            service.addLetter(current.text());
+            let row = parseInt(event.currentTarget.getAttribute('data-row-index'));
+            let col = parseInt(event.currentTarget.getAttribute('data-col-index'));
+            service.updateBoard(col, row)
+        })
+    }
+
+    this.getBoggleBoard = function (){
+        $.getJSON(url, data => {
+            service.initBoard(data)
+
+            let name = $('#inputName').val();
+            service.startGame(name)
+        })
+        
+    }
+
+    this.getBoggleBoardById = function (id){
+        $.getJSON(url, {boardId: id }, data => {
+            service.initBoard(data)
+
+            service.startGame(service.game.name)
+        })
+    }
+
+    this.initBoard = function (data) {
+        service.boggleBoard = new BoggleBoard(data.Id, data.Letters)
+        service.addLettersToBoard(data.Letters)
+        service.updateEvents()
+    }
+
+    this.addLettersToBoard = function (letters){
+        service.board.empty()
+        for (let row = 0; row < 4; row++){
+            service.board.append("<tr>");
+            for (let col = 0; col < 4; col++)
+            {
+                let letter = letters[row][col]
+                service.board.append("<td data-col-index=" + col + " data-row-index=" + row + " class=boggle>" + letter + "</td>");
+            }
+            service.board.append("</tr>");
+        }
+        service.letters = $('.boggle')
+    }
+
+    this.getScoreWord = function (){
+        $.getJSON(url + '/IsValidWord', {boardId: service.game.boggleBoardId, 
+                                            word: service.currentWord}, isvalidWord => {
+            if (!isvalidWord){
+                service.clear();
+                return
+            }
+
+            $.getJSON(url + '/ScoreWord', {word: service.currentWord}, result => {
+                let score = parseInt(result)
+                if (score > 0){
+                    service.game.score += score;
+                    $('#scoreTable').append("<tr><td>" + service.currentWord + "</td> <td>" + score + "</td></tr>");
+                } 
+                service.clear();
+            })
+            
+        })
+    }
+
+    this.getHighScores = function () {
+        $.getJSON(url + '/GetHighScore', scores => {           
+            let highScoreTable = $('#highScoreTable');
+            highScoreTable.find("tr:gt(0)").remove();
+            console.log(scores)
+            for (let g = 0; g < scores.length; g++){
+                if(scores[g] === null)
+                {
+                    continue
+                }
+                highScoreTable.append("<tr><td>" + scores[g].Name + "</td> <td>" + scores[g].Score + 
+                                        "</td> <td><button data-game-id="+ scores[g].BoggleBoardId +" class=playBoardButton>Play this board</button></td></tr>")
+            }
+            service.clear();
+        })
+    }
+
+    this.saveGame = function () {
+        $.ajax(url, {
+            type: 'post',
+            data: service.game,
+            success: function(){
+                service.getHighScores()
+            }
+        }).fail(function (jqXHR, textStatus, errorThrown){
+            alert('error')
+        })
+    }
+
+    this.addLetter = function (letter){
+        $('.wordBlock').append(letter);
+        service.currentWord += letter;
+    }
+
+    this.updateBoard = function (col, row){
+        for (let i = 0; i < service.letters.length; i++) {
+            let current = $(service.letters[i]);
+            if (!current.hasClass('selected'))
+            {   
+                current.addClass('disabled');
+            }
+        }
+        for (let rowDelta = -1; rowDelta < 2; rowDelta++){
+            let borderRow = row + rowDelta;
+            if (borderRow > 3 || borderRow < 0)
+            {
+                continue
+            }
+            for (let colDelta = -1; colDelta < 2; colDelta++){
+                let borderCol = col + colDelta
+                if (borderCol > 3 || borderCol < 0)
+                {
+                    continue;
+                }
+                let index = (4 * borderRow) + borderCol;
+                $(service.letters[index]).removeClass('disabled')
+                if (index === (4 * row) + col){
+                   $(service.letters[index]).addClass('selected'); 
+                }
+                
+            }
+        }
+    }
+
+    this.startGame = function (name) {
+        $('#gameField').show();
+        endScreen.hide();
+        startScreen.hide();
+        $('#scoreTable').find("tr:gt(0)").remove();
+        service.currentWord = ""
+        service.isGameEnd = false;
+        service.timerStart = new Date;
+        
+        boggleService.game = new Game(0, boggleService.boggleBoard.id, name);
+    }
+
+    this.clear = function (){
+        for (let i = 0; i < service.letters.length; i++) {
+            let current = $(service.letters[i]);
+                current.removeClass('disabled selected');
+        }
+        $('.wordBlock').empty();
+        service.currentWord = "";
+    }
+    
+    this.endGame = function (){
+        $('#gameField').hide();
+        service.isGameEnd = true;
+        service.saveGame()
+    }
+
+    setInterval(function() {
+        if(service.isGameEnd)
+        {
+            return
+        }
+        let time = 180 - Math.floor((new Date - service.timerStart) / 1000);
+        if (time < 175)
+        {
+            service.endGame();
+            endScreen.show();
+        }
+        $('.Timer').text("Timer: " + time);
+    }, 1000);
+}
+const inputName = $('#inputName'),
  startButton = $('#startButton'),
  endScreen = $('#endScreen'),
- startScreen = $('#startScreen'),
- games = [];
+ startScreen = $('#startScreen')
+ var boggleService
+
 $(document).ready(() => {
+    boggleService = new BoggleService('/api/Boggle')
+
     inputName.focus();
 })
 
-var letters = $('.boggle'),
- word = "", game, isGameEnd, timerStart;
-const board = $('#board');
-
-function addLetter(letter){
-    $('.wordBlock').append(letter);
-    console.log(letter);
-    word += letter;
-}
-
-function clear() {
-    for (let i = 0; i < letters.length; i++) {
-        let current = $(letters[i]);
-            current.removeClass('disabled selected');
-    }
-    $('.wordBlock').empty();
-    word = "";
-}
-
-function updateBoard(col, row){
-    for (let i = 0; i < letters.length; i++) {
-        let current = $(letters[i]);
-        if (!current.hasClass('selected'))
-        {   
-            current.addClass('disabled');
-        }
-    }
-    for (let rowDelta = -1; rowDelta < 2; rowDelta++){
-        let borderRow = row + rowDelta;
-        if (borderRow > 3 || borderRow < 0)
-        {
-            continue
-        }
-        for (let colDelta = -1; colDelta < 2; colDelta++){
-            let borderCol = col + colDelta
-            if (borderCol > 3 || borderCol < 0)
-            {
-                continue;
-            }
-            let index = (4 * borderRow) + borderCol;
-            $(letters[index]).removeClass('disabled')
-            if (index === (4 * row) + col){
-               $(letters[index]).addClass('selected'); 
-            }
-            
-        }
-    }
-}
-
-function create(name = "", boggleBoard) {
-    console.log(boggleBoard)
-    timerStart = new Date;
-    $('#gameField').show();
-    endScreen.hide();
-    startScreen.hide();
-    $('#scoreTable').find("tr:gt(0)").remove();
-    board.empty();
-        isGameEnd = false;
-
-    game = new Game(0, boggleBoard.id, name);
-    for (let row = 0; row < 4; row++){
-        board.append("<tr>");
-        for (let col = 0; col < 4; col++)
-        {
-            let letter = boggleBoard.letters[row][col]
-            board.append("<td data-col-index=" + col + " data-row-index=" + row + " class=boggle>" + letter + "</td>");
-        }
-        board.append("</tr>");
-    }
-
-    letters = $('.boggle');
-
-    $(letters).on('click', event => {
-        let current = $(event.currentTarget);
-        if(current.hasClass('selected') || current.hasClass('disabled'))
-        { 
-            return;
-        }
-        addLetter(current.text());
-        let row = parseInt(event.currentTarget.getAttribute('data-row-index'));
-        let col = parseInt(event.currentTarget.getAttribute('data-col-index'));
-        updateBoard(col, row)
-    })
-}
-
-function endGame(){
-    $('#gameField').hide();
-    isGameEnd = true;
-
-    console.log(JSON.stringify(game))
-    $.ajax({
-        url : '/api/Boggle',
-        type : 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(game)
-    });
-
-
-    $.ajax({
-
-        url : '/api/Boggle/GetHighScore',
-        type : 'GET',
-        dataType: 'json',
-        success : function(data) {  
-            console.log(data)            
-            games = data
-            console.log(games)
-
-            $('#score').text('Score: ' + game.score);
-            let highScoreTable = $('#highScoreTable');
-            highScoreTable.find("tr:gt(0)").remove();
-            for (let g = 0; g < games.length; g++){
-                highScoreTable.append("<tr><td>" + games[g].Name + "</td> <td>" + games[g].Score + 
-                                        "</td> <td><button data-game-index="+ games[g].BoggleBoardId +" class=playBoardButton>Play this board</button></td></tr>")
-            }
-            clear();
-    },
-    error : function(request,error)
-    {
-        alert("Request: "+JSON.stringify(error));
-    }
-});
-
-}
-
 $('#addWordButton').on('click', () => {
-    if (String(word).length < 3)
-    {
-        return;
-    }
-
-    
-    $.ajax({
-
-        url : '/api/Boggle/ScoreWord',
-        type : 'GET',
-        dataType: 'json',
-        data: {
-            word: word
-        },
-        success : function(data) {    
-            let score = parseInt(data)
-            if (score > 0){
-                game.score += score;
-                $('#scoreTable').append("<tr><td>" + word + "</td> <td>" + score + "</td></tr>");
-                clear();
-            }         
-        },
-        error : function(request,error)
-        {
-            alert("Request: "+JSON.stringify(error));
-        }
-    });
+    boggleService.getScoreWord()
 })
 
 $('#clearButton').on('click', () =>{
-    clear();
+    boggleService.clear();
 })
 
 startButton.on('click', () =>{
-    let name = $('#inputName').val();
+    boggleService.getBoggleBoard()
+})
 
-    $.getJSON('/api/Boggle', data => {
-        create(name, new BoggleBoard(data.Id, data.Letters));
-    })
-
-    // $.ajax({
-
-    //     url : '/api/Boggle/',
-    //     type : 'GET',
-    //     dataType: 'json',
-    //     success : function(data) {  
-    //         console.log(data.Letters)
-    //         //return new BoggleBoard(data.Id, data.Letters)
-    //     },
-    //     error : function(request,error)
-    //     {
-    //         alert("Request: "+JSON.stringify(error));
-    //     }
-    // });
-    // create(name, getBoard())
+$('#homeButton').on('click', () => {
+    endScreen.hide();
+    startScreen.show();
 })
 
 $('#highScoreTable').on('click', '.playBoardButton', event => {
 
-    let gameIndex = event.currentTarget.getAttribute('data-game-index');
-    console.log(gameIndex)
-    $.ajax({
-
-        url : '/api/Boggle/GetBoggleBoardById',
-        type : 'GET',
-        dataType: 'json',
-        data: {
-            boardId: gameIndex
-        },
-        success : function(data) {  
-            console.log(data.Letters)
-            create(name, new BoggleBoard(data.Id, data.Letters));
-        },
-        error : function(request,error)
-        {
-            alert("Request: "+JSON.stringify(error));
-        }
-    });
+    let gameId = event.currentTarget.getAttribute('data-game-id');
+    boggleService.getBoggleBoardById(gameId)
 })
-
-setInterval(function() {
-    if(isGameEnd)
-    {
-        return
-    }
-    let time = 180 - Math.floor((new Date - timerStart) / 1000);
-    if (time < 175)
-    {
-        endGame();
-        $('#endScreen').show();
-    }
-    $('.Timer').text("Timer: " + time);
-}, 1000);
 
 inputName.on('input', () => {
     if (inputName.val().length > 0)
@@ -255,43 +246,3 @@ inputName.on('input', () => {
         startButton.prop('disabled', true);
     }
 })
-
-$('#homeButton').on('click', () => {
-    endScreen.hide();
-    startScreen.show();
-})
-
-function getBoard()
-{
-    $.ajax({
-
-        url : '/api/Boggle/',
-        type : 'GET',
-        dataType: 'json',
-        async: 'false',
-        success : function(data) {  
-            console.log(data.Letters)
-            //return new BoggleBoard(data.Id, data.Letters)
-            create(name, boggleBoard);
-        },
-        error : function(request,error)
-        {
-            alert("Request: "+JSON.stringify(error));
-        }
-    });
-}
-
-
-// $.ajax({
-
-//     url : '/api/Boggle',
-//     type : 'GET',
-//     dataType: 'json',
-//     success : function(data) {              
-//         alert('Data: '+ data);
-//     },
-//     error : function(request,error)
-//     {
-//         alert("Request: "+JSON.stringify(error));
-//     }
-// });
