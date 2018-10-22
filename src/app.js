@@ -236,13 +236,26 @@ $('#highScoreTable').on('click', '.playBoardButton', event => {
     boggleService.getBoggleBoardById(gameId)
 })
 
+var highScoreButton = $('#highScoreButton')
 inputName.on('input', () => {
     if (inputName.val().length > 0)
     {
-        startButton.prop('disabled', false);
+        startButton.prop('disabled', false)
+        highScoreButton.prop('disabled', false)
     }
     if (!inputName.val().length > 0)
     {
-        startButton.prop('disabled', true);
+        startButton.prop('disabled', true)
+        highScoreButton.prop('disabled, true')
     }
+})
+
+$('#homeButton').on('click', () => {
+    endScreen.hide();
+    startScreen.show();
+})
+
+highScoreButton.on('click', () => {
+    startScreen.hide()
+    endScreen.show()
 })
