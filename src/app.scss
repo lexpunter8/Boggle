@@ -66,6 +66,11 @@ body html {
     color:white;
 }
 
+#endScreen .tableHeader th {
+    text-align: left;
+    color:white;
+}
+
 #endScreen {
     display: none;
 }
@@ -87,11 +92,10 @@ body html {
 }
 .defaultScreen div {
     width: 100%;
-    max-height: 200px;
+    max-height: 350px;
     display: flex;
     justify-content: center;
     text-align: center;
-    overflow: auto;
 }
 
 #endScreen table {
@@ -130,4 +134,8 @@ ul {
     list-style: none;
     padding: 0;
     margin: 0;
+}
+
+#errorBox {
+    color:red;
 }

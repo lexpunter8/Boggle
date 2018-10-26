@@ -9,9 +9,9 @@ class BoggleBoard {
 }
 
 class Game{
-    constructor(score, boggleBoardId, name){
-        this.score = score
-        this.boggleBoardId = boggleBoardId
+    constructor(id, name){
+        this.id = id
+        this.score = 0
         this.name = name
     }
 }
@@ -38,28 +38,32 @@ function BoggleService(url){
         })
     }
 
-    this.getBoggleBoard = function (){
-        $.getJSON(url, data => {
-            service.initBoard(data)
-
-            let name = $('#inputName').val();
-            service.startGame(name)
-        })
-        
-    }
-
-    this.getBoggleBoardById = function (id){
-        $.getJSON(url, {boardId: id }, data => {
-            service.initBoard(data)
-
-            service.startGame(service.game.name)
+    this.createGame = function (){
+        let name = nameInpuBox.val();
+        $.getJSON(url, {name: name}, gameId => {
+            service.game = new Game(gameId, name)
+            service.initBoard(gameId)
         })
     }
 
-    this.initBoard = function (data) {
-        service.boggleBoard = new BoggleBoard(data.Id, data.Letters)
-        service.addLettersToBoard(data.Letters)
-        service.updateEvents()
+    this.createGameByBoardId = function (boardId){
+        let name = nameInpuBox.val();
+        $.getJSON(url + '/GetGameByBoardId', {name: name, boardId: boardId }, gameId => {
+            service.game = new Game(gameId, name)
+            service.initBoard(gameId)
+        })
+    }
+
+    this.initBoard = function (gameId) {
+        $.getJSON(url + '/GetBoggleBoardByGameId', {gameId: gameId}, boggleBoard => {
+    
+            service.boggleBoard = new BoggleBoard(boggleBoard.Id, boggleBoard.Letters)
+            console.log(service.boggleBoard)
+            service.addLettersToBoard(boggleBoard.Letters)
+            service.updateEvents()
+            service.startGame()
+
+        })
     }
 
     this.addLettersToBoard = function (letters){
@@ -77,17 +81,21 @@ function BoggleService(url){
     }
 
     this.getScoreWord = function (){
-        $.getJSON(url + '/IsValidWord', {boardId: service.game.boggleBoardId, 
+        $.getJSON(url + '/IsValidWord', {gameId: service.game.id, 
                                             word: service.currentWord}, isvalidWord => {
+                                         console.log(service.currentWord)       
+            console.log(isvalidWord)
             if (!isvalidWord){
                 service.clear();
+                $('#errorBox').text('Not valid!')
                 return
             }
-
+            $('#errorBox').text('')
             $.getJSON(url + '/ScoreWord', {word: service.currentWord}, result => {
                 let score = parseInt(result)
                 if (score > 0){
                     service.game.score += score;
+                    console.log(service.game.score)
                     $('#scoreTable').append("<tr><td>" + service.currentWord + "</td> <td>" + score + "</td></tr>");
                 } 
                 service.clear();
@@ -97,16 +105,15 @@ function BoggleService(url){
     }
 
     this.getHighScores = function () {
-        $.getJSON(url + '/GetHighScore', scores => {           
+        $.getJSON(url + '/GetHighScore', {count: 10}, scores => {           
             let highScoreTable = $('#highScoreTable');
             highScoreTable.find("tr:gt(0)").remove();
-            console.log(scores)
             for (let g = 0; g < scores.length; g++){
                 if(scores[g] === null)
                 {
                     continue
                 }
-                highScoreTable.append("<tr><td>" + scores[g].Name + "</td> <td>" + scores[g].Score + 
+                highScoreTable.append("<tr><td>"+ (g + 1) +"</td><td>" + scores[g].Name + "</td> <td>" + scores[g].Score + 
                                         "</td> <td><button data-game-id="+ scores[g].BoggleBoardId +" class=playBoardButton>Play this board</button></td></tr>")
             }
             service.clear();
@@ -114,7 +121,10 @@ function BoggleService(url){
     }
 
     this.saveGame = function () {
-        $.ajax(url, {
+
+        console.log(service.game)
+        $.ajax({
+            url: url + '/SaveGame',
             type: 'post',
             data: service.game,
             success: function(){
@@ -160,7 +170,7 @@ function BoggleService(url){
         }
     }
 
-    this.startGame = function (name) {
+    this.startGame = function () {
         $('#gameField').show();
         endScreen.hide();
         startScreen.hide();
@@ -168,8 +178,6 @@ function BoggleService(url){
         service.currentWord = ""
         service.isGameEnd = false;
         service.timerStart = new Date;
-        
-        boggleService.game = new Game(0, boggleService.boggleBoard.id, name);
     }
 
     this.clear = function (){
@@ -185,6 +193,8 @@ function BoggleService(url){
         $('#gameField').hide();
         service.isGameEnd = true;
         service.saveGame()
+        $('#score').text('Your score: ' + service.game.score)
+        endScreen.show();
     }
 
     setInterval(function() {
@@ -193,10 +203,9 @@ function BoggleService(url){
             return
         }
         let time = 180 - Math.floor((new Date - service.timerStart) / 1000);
-        if (time < 175)
+        if (time < 1)
         {
             service.endGame();
-            endScreen.show();
         }
         $('.Timer').text("Timer: " + time);
     }, 1000);
@@ -204,8 +213,10 @@ function BoggleService(url){
 const inputName = $('#inputName'),
  startButton = $('#startButton'),
  endScreen = $('#endScreen'),
- startScreen = $('#startScreen')
- var boggleService
+ startScreen = $('#startScreen'),
+ highScoreButton = $('#highScoreButton'),
+ nameInpuBox = $('#inputName')
+var boggleService
 
 $(document).ready(() => {
     boggleService = new BoggleService('/api/Boggle')
@@ -222,7 +233,7 @@ $('#clearButton').on('click', () =>{
 })
 
 startButton.on('click', () =>{
-    boggleService.getBoggleBoard()
+    boggleService.createGame()
 })
 
 $('#homeButton').on('click', () => {
@@ -233,10 +244,9 @@ $('#homeButton').on('click', () => {
 $('#highScoreTable').on('click', '.playBoardButton', event => {
 
     let gameId = event.currentTarget.getAttribute('data-game-id');
-    boggleService.getBoggleBoardById(gameId)
+    boggleService.createGameByBoardId(gameId)
 })
 
-var highScoreButton = $('#highScoreButton')
 inputName.on('input', () => {
     if (inputName.val().length > 0)
     {
@@ -246,7 +256,7 @@ inputName.on('input', () => {
     if (!inputName.val().length > 0)
     {
         startButton.prop('disabled', true)
-        highScoreButton.prop('disabled, true')
+        highScoreButton.prop('disabled', true)
     }
 })
 
@@ -258,4 +268,5 @@ $('#homeButton').on('click', () => {
 highScoreButton.on('click', () => {
     startScreen.hide()
     endScreen.show()
+    boggleService.getHighScores()
 })
